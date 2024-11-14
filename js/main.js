@@ -15,7 +15,8 @@ const bag = {
     y: canvas.height - 60,
     radius: 15,
     originalRadius: 15,
-    isMoving: false
+    isMoving: false,
+    weight: 1 // New weight property to simulate drag
 };
 
 // UI elements
@@ -34,7 +35,7 @@ let timerInterval = setInterval(() => {
     }
 }, 1000);
 
-// Draw the game board with only the circular target
+// Draw the game board with the target hole at the far end
 function drawBoard() {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 5); // Move to higher position
@@ -43,10 +44,10 @@ function drawBoard() {
     ctx.fillRect(-canvas.width / 4, -canvas.height / 8, canvas.width / 2, canvas.height / 4);
     ctx.restore();
 
-    // Draw circular target (bullseye)
+    // Draw circular target (bullseye) at the far end of the board
     ctx.fillStyle = 'black';
     ctx.beginPath();
-    ctx.arc(canvas.width / 2, canvas.height / 3, 20, 0, Math.PI * 2);
+    ctx.arc(canvas.width / 2, canvas.height / 5, 20, 0, Math.PI * 2); // Adjusted position
     ctx.fill();
 }
 
@@ -106,11 +107,12 @@ function throwBag() {
     let maxDistance = canvas.height; // Maximum throw distance beyond the board
     let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
     let initialY = bag.y;
-    let peakY = initialY - scaledPower; // End position at peak
+    let finalY = initialY - scaledPower; // End position at peak
 
     let midpointY = initialY - (scaledPower / 2); // Midpoint for peak size
     let scalingFactor = 1 + 0.15; // Max scaling of 15%
 
+    bag.isMoving = true;
     let animationProgress = 0; // Track animation progress from 0 to 1
 
     let animationInterval = setInterval(() => {
@@ -138,6 +140,19 @@ function throwBag() {
         if (animationProgress >= 1) {
             clearInterval(animationInterval);
             bag.isMoving = false;
+            applyLandingDrag();
+        }
+    }, 30);
+}
+
+// Apply drag effect and handle scoring when the bag lands
+function applyLandingDrag() {
+    let dragInterval = setInterval(() => {
+        // Simulate drag by gradually slowing down the bag's movement
+        if (bag.y > canvas.height / 5 && bag.y < canvas.height / 3) {
+            bag.y -= 0.5 * bag.weight; // Drag effect based on weight
+        } else {
+            clearInterval(dragInterval);
             handleLanding();
         }
     }, 30);
@@ -146,8 +161,7 @@ function throwBag() {
 // Handle landing logic for scoring
 function handleLanding() {
     // Check if the bag lands within the circular bullseye for +3 points
-    if (bag.y <= canvas.height / 3 + 20 && bag.y >= canvas.height / 3 - 20 &&
-        bag.x <= canvas.width / 2 + 20 && bag.x >= canvas.width / 2 - 20) {
+    if (Math.abs(bag.y - canvas.height / 5) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15) {
         score += 3;
         showScoreOverlay('+3 Points!');
     }
