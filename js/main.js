@@ -14,7 +14,8 @@ const bag = {
     x: canvas.width / 2,
     y: canvas.height - 60,
     radius: 15,
-    originalRadius: 15
+    originalRadius: 15,
+    isMoving: false
 };
 
 // UI elements
@@ -42,7 +43,7 @@ function drawBoard() {
     ctx.fillRect(-canvas.width / 4, -canvas.height / 8, canvas.width / 2, canvas.height / 4);
     ctx.restore();
 
-    // Draw circular target
+    // Draw circular target (bullseye)
     ctx.fillStyle = 'black';
     ctx.beginPath();
     ctx.arc(canvas.width / 2, canvas.height / 3, 20, 0, Math.PI * 2);
@@ -105,10 +106,11 @@ function throwBag() {
     let maxDistance = canvas.height; // Maximum throw distance beyond the board
     let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
     let initialY = bag.y;
-    let peakY = initialY - scaledPower; // Peak position
+    let finalY = initialY - scaledPower; // End position at peak
 
     let scalingFactor = 1 + (scaledPower / maxDistance) * 0.15; // 15% scaling
 
+    bag.isMoving = true;
     let animationProgress = 0; // Track animation progress from 0 to 1
 
     let animationInterval = setInterval(() => {
@@ -119,24 +121,54 @@ function throwBag() {
         animationProgress += 0.02; // Adjust step for smooth animation
 
         // Calculate the new Y position using linear interpolation
-        if (animationProgress <= 0.5) {
-            // Scale up phase
-            bag.radius = bag.originalRadius * (1 + scalingFactor * (animationProgress * 2));
-            bag.y = initialY - (scaledPower * animationProgress * 2); // Moving up
-        } else {
-            // Scale down phase
-            bag.radius = bag.originalRadius * (1 + scalingFactor * (2 - animationProgress * 2));
-            bag.y = peakY + (scaledPower * (animationProgress - 0.5) * 2); // Moving down
-        }
+        bag.y = initialY - (scaledPower * animationProgress);
+        bag.radius = bag.originalRadius * (1 + scalingFactor * (1 - animationProgress)); // Scale as it moves up
 
         drawBag();
 
-        // Stop the animation at the end
+        // Check if the bag lands on the board
         if (animationProgress >= 1) {
             clearInterval(animationInterval);
-            resetBag();
+            bag.isMoving = false;
+            handleLanding();
         }
     }, 30);
+}
+
+// Handle landing logic for scoring
+function handleLanding() {
+    // Check if the bag lands within the circular bullseye for +3 points
+    if (bag.y <= canvas.height / 3 + 20 && bag.y >= canvas.height / 3 - 20 &&
+        bag.x <= canvas.width / 2 + 20 && bag.x >= canvas.width / 2 - 20) {
+        score += 3;
+        showScoreOverlay('+3 Points!');
+    }
+    // Check if the bag lands on the board for +1 point
+    else if (bag.y >= canvas.height / 4 && bag.y <= canvas.height / 2 &&
+             bag.x >= canvas.width / 4 && bag.x <= (canvas.width / 4) + (canvas.width / 2)) {
+        score += 1;
+        showScoreOverlay('+1 Point!');
+    }
+
+    scoreEl.textContent = `Score: ${score}`;
+    setTimeout(resetBag, 1000); // Wait before resetting for the next throw
+}
+
+// Show score overlay animation
+function showScoreOverlay(text) {
+    scoreOverlay.textContent = text;
+    scoreOverlay.style.display = 'block';
+    scoreOverlay.style.opacity = '1';
+
+    let opacity = 1;
+    let fadeInterval = setInterval(() => {
+        opacity -= 0.05;
+        scoreOverlay.style.opacity = opacity.toString();
+        if (opacity <= 0) {
+            clearInterval(fadeInterval);
+            scoreOverlay.style.display = 'none';
+        }
+    }, 50);
 }
 
 // Clear canvas function
