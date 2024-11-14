@@ -1,71 +1,95 @@
-// Select canvas and set up context
+// Select elements
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const throwsLeftEl = document.getElementById('throws-left');
+const scoreEl = document.getElementById('score');
+const timeLeftEl = document.getElementById('time-left');
 
 // Game variables
-const board = { x: 50, y: 600, width: 300, height: 200 };  // Check if the board height should be reduced
-const holes = [
-    { type: 'circle', x: 200, y: 650, radius: 30 },
-    { type: 'square', x: 200, y: 700, size: 50 },
-    { type: 'triangle', x: 200, y: 750, size: 60 }
-];
-let bag = { x: 200, y: 750, radius: 15, type: null };
 let throwsLeft = 10;
-let timeLeft = 60;
-let isThrowing = false;
-let isDragging = false;
 let score = 0;
+let timeLeft = 60;
+let isDragging = false;
+let isThrowing = false;
+let startPoint = null;
+let endPoint = null;
+let currentBag = null;
+const bag = { x: canvas.width / 2, y: canvas.height - 0.08 * window.innerHeight, radius: 15, type: null };
 
-// UI elements
-const timerEl = document.getElementById('timer');
-const throwsEl = document.getElementById('throws');
-const scoreEl = document.getElementById('score');
-const scoreOverlay = document.getElementById('score-overlay');
-
-// Timer setup
+// Timer
 let timerInterval = setInterval(() => {
     if (timeLeft > 0 && throwsLeft > 0) {
         timeLeft--;
-        timerEl.innerText = `Time Left: ${timeLeft}s`;
+        timeLeftEl.textContent = `Time: ${timeLeft}s`;
     } else {
         clearInterval(timerInterval);
-        alert("Game Over! Time's up or no throws left.");
+        alert('Game Over! Time\'s up or no throws left.');
     }
 }, 1000);
 
-// Draw board and holes
+// Draw board and targets
 function drawBoard() {
-    ctx.fillStyle = 'tan';
-    ctx.fillRect(board.x, board.y, board.width, board.height);
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = '#e6b800';
+    ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 4);
 
-    // Draw circle hole
+    // Draw shape targets
+    ctx.fillStyle = 'black';
     ctx.beginPath();
-    ctx.arc(holes[0].x, holes[0].y, holes[0].radius, 0, Math.PI * 2);
+    ctx.arc(canvas.width / 2, canvas.height / 3, 20, 0, Math.PI * 2);
     ctx.fill();
 
-    // Draw square hole
-    ctx.fillRect(holes[1].x - holes[1].size / 2, holes[1].y - holes[1].size / 2, holes[1].size, holes[1].size);
+    ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2.5, 40, 40);
 
-    // Draw triangle hole
     ctx.beginPath();
-    ctx.moveTo(holes[2].x, holes[2].y - holes[2].size / 2);
-    ctx.lineTo(holes[2].x - holes[2].size / 2, holes[2].y + holes[2].size / 2);
-    ctx.lineTo(holes[2].x + holes[2].size / 2, holes[2].y + holes[2].size / 2);
+    ctx.moveTo(canvas.width / 2, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 - 20, canvas.height / 2 + 40);
+    ctx.lineTo(canvas.width / 2 + 20, canvas.height / 2 + 40);
     ctx.closePath();
     ctx.fill();
 }
 
-// Draw the bag and animate scale during throw
+// Draw bag
 function drawBag() {
-    if (!bag.type) return;
     ctx.fillStyle = 'blue';
     ctx.beginPath();
     ctx.arc(bag.x, bag.y, bag.radius, 0, Math.PI * 2);
     ctx.fill();
 }
 
-// Slingshot mechanic for drawing angle and power line
+// Handle mouse/touch events for dragging and throwing
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    if (Math.sqrt((mouseX - bag.x) ** 2 + (mouseY - bag.y) ** 2) <= bag.radius) {
+        isDragging = true;
+        startPoint = { x: mouseX, y: mouseY };
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        clearCanvas();
+        drawBoard();
+        drawBag();
+        drawLine(bag.x, bag.y, mouseX, mouseY);
+    }
+});
+
+canvas.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+        isDragging = false;
+        endPoint = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
+        calculateThrow();
+    }
+});
+
+// Draw line for slingshot power direction
 function drawLine(x1, y1, x2, y2) {
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 2;
@@ -75,6 +99,65 @@ function drawLine(x1, y1, x2, y2) {
     ctx.stroke();
 }
 
-// Animation for scaling up and down (representing an arc) should be checked during the throw logic.
+// Calculate throw and animate
+function calculateThrow() {
+    if (!endPoint) return;
 
-// Next Steps: Review and adjust the rest of the event handling, bag scaling, and game interactions as needed.
+    let dx = endPoint.x - startPoint.x;
+    let dy = endPoint.y - startPoint.y;
+
+    let angle = Math.atan2(dy, dx);
+    let power = Math.min(Math.sqrt(dx * dx + dy * dy) / 10, 20);
+
+    animateThrow(angle, power);
+}
+
+function animateThrow(angle, power) {
+    if (isThrowing) return;
+    isThrowing = true;
+    throwsLeft--;
+    throwsLeftEl.textContent = `Throws Left: ${throwsLeft}`;
+
+    let vx = power * Math.cos(angle);
+    let vy = power * Math.sin(angle) * -1;
+    let gravity = 0.5;
+    let scaleFactor = 1.15;
+
+    let animationInterval = setInterval(() => {
+        clearCanvas();
+        drawBoard();
+
+        // Update bag position and scale
+        bag.x += vx;
+        bag.y += vy;
+        bag.radius *= scaleFactor;
+
+        vy += gravity;
+
+        drawBag();
+
+        // End animation condition
+        if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
+            clearInterval(animationInterval);
+            isThrowing = false;
+            resetBag();
+        }
+    }, 30);
+}
+
+// Clear canvas function
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Reset bag position
+function resetBag() {
+    bag.x = canvas.width / 2;
+    bag.y = canvas.height - 0.08 * window.innerHeight;
+    bag.radius = 15;
+}
+
+// Initial draw
+clearCanvas();
+drawBoard();
+drawBag();
