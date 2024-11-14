@@ -4,6 +4,18 @@ const ctx = canvas.getContext('2d');
 const sliderCanvas = document.getElementById('sliderCanvas');
 const sliderCtx = sliderCanvas.getContext('2d');
 const sliderBall = document.getElementById('slider-ball');
+const scoreOverlay = document.createElement('div'); // Create score overlay
+
+document.body.appendChild(scoreOverlay);
+scoreOverlay.style.position = 'fixed';
+scoreOverlay.style.top = '40%';
+scoreOverlay.style.left = '50%';
+scoreOverlay.style.transform = 'translate(-50%, -50%)';
+scoreOverlay.style.fontSize = '48px';
+scoreOverlay.style.fontWeight = 'bold';
+scoreOverlay.style.color = 'black';
+scoreOverlay.style.display = 'none';
+scoreOverlay.style.zIndex = '1000';
 
 let throwsLeft = 10;
 let score = 0;
@@ -185,7 +197,9 @@ function handleLanding() {
     }
 
     scoreEl.textContent = `Score: ${score}`;
-    resetBag(); // Reset the bag to the origin for the next throw
+    setTimeout(() => {
+        resetBag(); // Reset the bag to the origin for the next throw
+    }, 1000); // Wait before resetting for the next throw
 }
 
 // Show score overlay animation
@@ -212,16 +226,14 @@ function clearCanvas() {
 
 // Reset bag position to origin for the next throw
 function resetBag() {
-    setTimeout(() => {
-        bag.x = canvas.width / 2;
-        bag.y = canvas.height - 60;
-        bag.radius = bag.originalRadius;
-        drawBoard();
-        drawBag();
-    }, 1000);
+    bag.x = canvas.width / 2;
+    bag.y = canvas.height - 60;
+    bag.radius = bag.originalRadius;
+    drawBoard();
+    drawBag();
 }
 
-// Initial draw
+// Initial draw to ensure a bag is present at the start
 drawBoard();
 drawSlider();
 drawBag();
