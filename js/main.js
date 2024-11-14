@@ -1,9 +1,6 @@
-// Select elements
+// Select canvas and set up context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const throwsLeftEl = document.getElementById('throws-left');
-const scoreEl = document.getElementById('score');
-const timeLeftEl = document.getElementById('time-left');
 
 // Game variables
 let throwsLeft = 10;
@@ -13,17 +10,27 @@ let isDragging = false;
 let isThrowing = false;
 let startPoint = null;
 let endPoint = null;
-let currentBag = null;
-const bag = { x: canvas.width / 2, y: canvas.height - 0.08 * window.innerHeight, radius: 15, type: null };
+const bag = {
+    x: canvas.width / 2,
+    y: canvas.height - 0.08 * window.innerHeight,
+    radius: 15,
+    originalRadius: 15,
+    type: null
+};
 
-// Timer
+// UI elements
+const throwsLeftEl = document.getElementById('throws-left');
+const scoreEl = document.getElementById('score');
+const timeLeftEl = document.getElementById('time-left');
+
+// Timer setup
 let timerInterval = setInterval(() => {
     if (timeLeft > 0 && throwsLeft > 0) {
         timeLeft--;
         timeLeftEl.textContent = `Time: ${timeLeft}s`;
     } else {
         clearInterval(timerInterval);
-        alert('Game Over! Time\'s up or no throws left.');
+        alert("Game Over! Time's up or no throws left.");
     }
 }, 1000);
 
@@ -106,8 +113,10 @@ function calculateThrow() {
     let dx = endPoint.x - startPoint.x;
     let dy = endPoint.y - startPoint.y;
 
+    // Adjust max power and limit scaling effect
+    let maxPullDistance = Math.min(Math.sqrt(dx * dx + dy * dy), canvas.height / 4);
     let angle = Math.atan2(dy, dx);
-    let power = Math.min(Math.sqrt(dx * dx + dy * dy) / 10, 20);
+    let power = maxPullDistance / 10;  // Adjust scaling to max throw just over the board
 
     animateThrow(angle, power);
 }
@@ -119,19 +128,24 @@ function animateThrow(angle, power) {
     throwsLeftEl.textContent = `Throws Left: ${throwsLeft}`;
 
     let vx = power * Math.cos(angle);
-    let vy = power * Math.sin(angle) * -1;
+    let vy = power * Math.sin(angle) * -1;  // Upward
     let gravity = 0.5;
-    let scaleFactor = 1.15;
+    let scalingFactor = 1 + (power / 20) * 0.15;  // Max scale of 15%
 
     let animationInterval = setInterval(() => {
         clearCanvas();
         drawBoard();
 
-        // Update bag position and scale
+        // Animate bag scaling based on distance
+        if (bag.y < canvas.height / 2) {
+            bag.radius = bag.originalRadius * scalingFactor;
+        } else {
+            bag.radius = bag.originalRadius * (2 - scalingFactor);
+        }
+
+        // Update bag position
         bag.x += vx;
         bag.y += vy;
-        bag.radius *= scaleFactor;
-
         vy += gravity;
 
         drawBag();
@@ -154,7 +168,7 @@ function clearCanvas() {
 function resetBag() {
     bag.x = canvas.width / 2;
     bag.y = canvas.height - 0.08 * window.innerHeight;
-    bag.radius = 15;
+    bag.radius = bag.originalRadius;
 }
 
 // Initial draw
