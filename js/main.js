@@ -149,9 +149,14 @@ function throwBag() {
 function applyLandingDrag() {
     let dragSpeed = 2; // Initial drag speed for the bag
     let dragInterval = setInterval(() => {
+        clearCanvas();
+        drawBoard();
+
+        // Simulate drag by gradually slowing down the bag's movement
         if (bag.y > canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8) {
             bag.y -= dragSpeed;
             dragSpeed *= 0.9; // Slow down the drag effect gradually
+
             if (dragSpeed < 0.1) { // Stop when drag becomes negligible
                 clearInterval(dragInterval);
                 handleLanding();
@@ -160,7 +165,8 @@ function applyLandingDrag() {
             clearInterval(dragInterval);
             handleLanding();
         }
-        drawBag();
+
+        drawBag(); // Redraw the bag at its new position
     }, 30);
 }
 
