@@ -3,7 +3,6 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const sliderCanvas = document.getElementById('sliderCanvas');
 const sliderCtx = sliderCanvas.getContext('2d');
-const sliderBall = document.getElementById('slider-ball');
 const scoreOverlay = document.createElement('div'); // Create score overlay
 
 document.body.appendChild(scoreOverlay);
@@ -22,6 +21,9 @@ let score = 0;
 let timeLeft = 60;
 let isDraggingBall = false;
 let power = 0;
+let viewportOffset = 0; // Track the current scroll offset
+const canvasHeight = window.innerHeight * 3; // Set the canvas height to 3x the viewport height
+canvas.height = canvasHeight; // Adjust the canvas size
 const bag = {
     x: canvas.width / 2,
     y: canvas.height - 60,
@@ -79,7 +81,7 @@ function drawSlider() {
 function drawBag() {
     ctx.fillStyle = 'blue';
     ctx.beginPath();
-    ctx.arc(bag.x, bag.y, bag.radius, 0, Math.PI * 2);
+    ctx.arc(bag.x, bag.y - viewportOffset, bag.radius, 0, Math.PI * 2); // Adjust for viewport offset
     ctx.fill();
 }
 
@@ -110,13 +112,13 @@ document.addEventListener('mouseup', () => {
     }
 });
 
-// Throw the bag with power based on slider value
+// Throw the bag with power based on slider value and scroll the viewport
 function throwBag() {
     if (throwsLeft <= 0) return;
     throwsLeft--;
     throwsLeftEl.textContent = `Throws Left: ${throwsLeft}`;
 
-    let maxDistance = canvas.height; // Maximum throw distance beyond the board
+    let maxDistance = canvas.height; // Maximum throw distance
     let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
     let initialY = bag.y;
     let finalY = initialY - scaledPower; // End position at peak
@@ -136,6 +138,11 @@ function throwBag() {
 
         // Calculate the new Y position using linear interpolation
         bag.y = initialY - (scaledPower * animationProgress);
+
+        // Adjust viewport to follow the bag's movement
+        if (bag.y < canvas.height - window.innerHeight && bag.y > window.innerHeight) {
+            viewportOffset = canvas.height - bag.y - window.innerHeight;
+        }
 
         // Scale the bag: enlarge up to the midpoint, then shrink
         if (animationProgress <= 0.5) {
@@ -228,10 +235,12 @@ function showScoreOverlay(text) {
 // Clear canvas function
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.translate(0, viewportOffset); // Adjust the canvas to simulate scrolling
 }
 
 // Reset bag position to origin for the next throw
 function resetBag() {
+    viewportOffset = 0; // Reset the viewport to the bottom of the canvas
     bag.x = canvas.width / 2;
     bag.y = canvas.height - 60;
     bag.radius = bag.originalRadius;
