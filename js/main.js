@@ -1,8 +1,6 @@
 // Select elements
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const sliderCanvas = document.getElementById('sliderCanvas');
-const sliderCtx = sliderCanvas.getContext('2d');
 const scoreOverlay = document.createElement('div'); // Create score overlay
 
 document.body.appendChild(scoreOverlay);
@@ -19,7 +17,7 @@ scoreOverlay.style.zIndex = '1000';
 let throwsLeft = 10;
 let score = 0;
 let timeLeft = 60;
-let isDraggingBall = false;
+let isDraggingPower = false;
 let power = 0;
 let viewportOffset = 0; // Track the current scroll offset
 const canvasHeight = window.innerHeight * 3; // Set the canvas height to 3x the viewport height
@@ -40,6 +38,27 @@ const throwsLeftEl = document.getElementById('throws-left');
 const scoreEl = document.getElementById('score');
 const timeLeftEl = document.getElementById('time-left');
 
+// Power indicator (thermometer-style) setup
+const powerIndicator = document.createElement('div');
+powerIndicator.style.position = 'fixed';
+powerIndicator.style.left = '10px';
+powerIndicator.style.top = '10%';
+powerIndicator.style.width = '20px';
+powerIndicator.style.height = '80%';
+powerIndicator.style.backgroundColor = 'gray';
+powerIndicator.style.borderRadius = '10px';
+document.body.appendChild(powerIndicator);
+
+const powerLevel = document.createElement('div');
+powerLevel.style.position = 'absolute';
+powerLevel.style.bottom = '0';
+powerLevel.style.left = '0';
+powerLevel.style.width = '100%';
+powerLevel.style.height = '0';
+powerLevel.style.backgroundColor = 'red';
+powerLevel.style.borderRadius = '10px';
+powerIndicator.appendChild(powerLevel);
+
 // Timer setup
 let timerInterval = setInterval(() => {
     if (timeLeft > 0 && throwsLeft > 0) {
@@ -51,7 +70,23 @@ let timerInterval = setInterval(() => {
     }
 }, 1000);
 
-// Draw the game board and target hole at the top of the board
+// Initial scroll to show the top of the canvas (board)
+function scrollToTop() {
+    viewportOffset = 0;
+    ctx.setTransform(1, 0, 0, 1, 0, viewportOffset);
+    drawBoard();
+    drawBag();
+}
+
+// Scroll to the bottom to show the starting position of the bag
+function scrollToBottom() {
+    viewportOffset = canvasHeight - window.innerHeight;
+    ctx.setTransform(1, 0, 0, 1, 0, -viewportOffset);
+    drawBoard();
+    drawBag();
+}
+
+// Draw the game board and target hole at the top of the canvas
 function drawBoard() {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 5); // Move to higher position
@@ -67,19 +102,7 @@ function drawBoard() {
     ctx.fill();
 }
 
-// Draw the slider (right triangle)
-function drawSlider() {
-    sliderCtx.clearRect(0, 0, sliderCanvas.width, sliderCanvas.height);
-    sliderCtx.fillStyle = 'green';
-    sliderCtx.beginPath();
-    sliderCtx.moveTo(0, 50);
-    sliderCtx.lineTo(sliderCanvas.width, 50);
-    sliderCtx.lineTo(sliderCanvas.width, 0);
-    sliderCtx.closePath();
-    sliderCtx.fill();
-}
-
-// Draw bag
+// Draw the bag at the starting position
 function drawBag() {
     ctx.fillStyle = 'blue';
     ctx.beginPath();
@@ -87,34 +110,34 @@ function drawBag() {
     ctx.fill();
 }
 
-// Move the slider ball based on mouse/touch input
-sliderBall.addEventListener('mousedown', (e) => {
-    isDraggingBall = true;
+// Handle power selection by dragging on the power indicator
+powerIndicator.addEventListener('mousedown', (e) => {
+    isDraggingPower = true;
 });
 
 document.addEventListener('mousemove', (e) => {
-    if (isDraggingBall) {
-        const rect = sliderCanvas.getBoundingClientRect();
-        let mouseX = e.clientX - rect.left;
+    if (isDraggingPower) {
+        const rect = powerIndicator.getBoundingClientRect();
+        let mouseY = e.clientY - rect.top;
 
-        // Keep the ball within the bounds of the slider
-        if (mouseX < 0) mouseX = 0;
-        if (mouseX > rect.width) mouseX = rect.width;
+        // Keep the power level within bounds
+        if (mouseY < 0) mouseY = 0;
+        if (mouseY > rect.height) mouseY = rect.height;
 
-        // Update the position of the slider ball and calculate power
-        sliderBall.style.left = `${mouseX - 7}px`;
-        power = (mouseX / rect.width) * 100; // Calculate power as a percentage
+        power = (rect.height - mouseY) / rect.height * 100; // Calculate power as a percentage
+        powerLevel.style.height = `${power}%`; // Update power level visually
     }
 });
 
 document.addEventListener('mouseup', () => {
-    if (isDraggingBall) {
-        isDraggingBall = false;
-        throwBag();
+    if (isDraggingPower) {
+        isDraggingPower = false;
+        scrollToBottom(); // Scroll to the bottom for the throw setup
+        setTimeout(throwBag, 500); // Throw the bag after a brief delay
     }
 });
 
-// Throw the bag with power based on slider value and scroll the viewport
+// Throw the bag with power based on the selected value and scroll the viewport
 function throwBag() {
     if (throwsLeft <= 0) return;
     throwsLeft--;
@@ -142,8 +165,8 @@ function throwBag() {
         bag.y = initialY - (scaledPower * animationProgress);
 
         // Adjust viewport to follow the bag's movement
-        if (bag.y < canvas.height - window.innerHeight && bag.y > window.innerHeight) {
-            viewportOffset = canvas.height - bag.y - window.innerHeight;
+        if (bag.y < canvasHeight - window.innerHeight && bag.y > window.innerHeight) {
+            viewportOffset = canvasHeight - bag.y - window.innerHeight;
         }
 
         // Scale the bag: enlarge up to the midpoint, then shrink
@@ -237,12 +260,12 @@ function showScoreOverlay(text) {
 // Clear canvas function
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.translate(0, viewportOffset); // Adjust the canvas to simulate scrolling
+    ctx.setTransform(1, 0, 0, 1, 0, -viewportOffset); // Adjust the canvas to simulate scrolling
 }
 
 // Reset bag position to origin for the next throw
 function resetBag() {
-    viewportOffset = 0; // Reset the viewport to the bottom of the canvas
+    viewportOffset = canvasHeight - window.innerHeight; // Reset the viewport to the bottom of the canvas
     bag.x = canvas.width / 2;
     bag.y = canvas.height - 60;
     bag.radius = bag.originalRadius;
@@ -250,7 +273,7 @@ function resetBag() {
     drawBag();
 }
 
-// Initial draw to ensure a bag is present at the start
-drawBoard();
-drawSlider();
-drawBag();
+// Initial setup
+scrollToTop(); // Start with the board in view
+drawSlider(); // Draw the power indicator
+drawBag(); // Draw the bag at the bottom for the initial view
