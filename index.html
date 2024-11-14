@@ -2,27 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cornhole Game</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Toss Game</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header -->
-    <div id="header">
-        <div id="throws-left">Throws Left: 10</div>
-        <div id="score">Score: 0</div>
-        <div id="time-left">Time: 60s</div>
+    <div class="game-container">
+        <div id="paper" class="paper"></div>
+        <div id="basket" class="basket"></div>
+        <div class="scoreboard">Score: <span id="score">0</span></div>
     </div>
-
-    <!-- Game Area -->
-    <div id="game-container">
-        <canvas id="gameCanvas" width="375" height="500"></canvas>
-        <div id="slider-container">
-            <canvas id="sliderCanvas" width="375" height="50"></canvas>
-            <div id="slider-ball"></div>
-        </div>
-    </div>
-
-    <script src="js/main.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
