@@ -160,13 +160,14 @@ function throwBag() {
 // Apply drag effect and handle scoring when the bag lands
 function applyLandingDrag() {
     let dragSpeed = 2; // Initial drag speed for the bag
+    let randomDragFactor = Math.random() * 1.5 + 0.5; // Randomize drag between 0.5 and 2x
     let dragInterval = setInterval(() => {
         clearCanvas();
         drawBoard();
 
         // Simulate drag by gradually slowing down the bag's movement
         if (bag.y > canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8) {
-            bag.y -= dragSpeed;
+            bag.y -= dragSpeed * randomDragFactor;
             dragSpeed *= 0.9; // Slow down the drag effect gradually
 
             if (dragSpeed < 0.1) { // Stop when drag becomes negligible
@@ -184,7 +185,12 @@ function applyLandingDrag() {
 
 // Handle landing logic for scoring
 function handleLanding() {
-    let inHole = Math.abs(bag.y - (canvas.height / 5 - 40)) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15;
+    let holeCenterX = canvas.width / 2;
+    let holeCenterY = canvas.height / 5 - 40;
+    let holeRadius = 20;
+    let distanceToHole = Math.sqrt(Math.pow(bag.x - holeCenterX, 2) + Math.pow(bag.y - holeCenterY, 2));
+
+    let inHole = distanceToHole <= holeRadius * 0.75; // 3/4 coverage requirement
     let onBoard = bag.y >= canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8 &&
                   bag.x >= canvas.width / 4 && bag.x <= (canvas.width / 4) + (canvas.width / 2);
 
