@@ -33,24 +33,19 @@ let timerInterval = setInterval(() => {
     }
 }, 1000);
 
-// Draw the game board and targets
+// Draw the game board with only the circular target
 function drawBoard() {
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 5); // Move to higher position
+    ctx.rotate(-Math.PI / 2); // Rotate the board to face portrait
     ctx.fillStyle = '#e6b800';
-    ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 4);
+    ctx.fillRect(-canvas.width / 4, -canvas.height / 8, canvas.width / 2, canvas.height / 4);
+    ctx.restore();
 
-    // Draw shape targets
+    // Draw circular target
     ctx.fillStyle = 'black';
     ctx.beginPath();
     ctx.arc(canvas.width / 2, canvas.height / 3, 20, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillRect(canvas.width / 2 - 20, canvas.height / 2.5, 40, 40);
-
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, canvas.height / 2);
-    ctx.lineTo(canvas.width / 2 - 20, canvas.height / 2 + 40);
-    ctx.lineTo(canvas.width / 2 + 20, canvas.height / 2 + 40);
-    ctx.closePath();
     ctx.fill();
 }
 
@@ -106,25 +101,38 @@ function throwBag() {
     if (throwsLeft <= 0) return;
     throwsLeft--;
     throwsLeftEl.textContent = `Throws Left: ${throwsLeft}`;
-    
-    let angle = -Math.PI / 4; // Fixed angle for simplicity
-    let maxDistance = canvas.height / 2; // Maximum throw distance
-    let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
-    let vy = -scaledPower; // Vertical velocity
 
-    let gravity = 0.5; // Simulate gravity
+    let maxDistance = canvas.height; // Maximum throw distance beyond the board
+    let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
+    let initialY = bag.y;
+    let peakY = initialY - scaledPower; // Peak position
+
+    let scalingFactor = 1 + (scaledPower / maxDistance) * 0.15; // 15% scaling
+
+    let animationProgress = 0; // Track animation progress from 0 to 1
 
     let animationInterval = setInterval(() => {
         clearCanvas();
         drawBoard();
 
-        // Update bag position and check if it hits the board
-        bag.y += vy;
-        vy += gravity; // Gravity effect
+        // Update animation progress
+        animationProgress += 0.02; // Adjust step for smooth animation
+
+        // Calculate the new Y position using linear interpolation
+        if (animationProgress <= 0.5) {
+            // Scale up phase
+            bag.radius = bag.originalRadius * (1 + scalingFactor * (animationProgress * 2));
+            bag.y = initialY - (scaledPower * animationProgress * 2); // Moving up
+        } else {
+            // Scale down phase
+            bag.radius = bag.originalRadius * (1 + scalingFactor * (2 - animationProgress * 2));
+            bag.y = peakY + (scaledPower * (animationProgress - 0.5) * 2); // Moving down
+        }
 
         drawBag();
 
-        if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
+        // Stop the animation at the end
+        if (animationProgress >= 1) {
             clearInterval(animationInterval);
             resetBag();
         }
@@ -140,6 +148,7 @@ function clearCanvas() {
 function resetBag() {
     bag.x = canvas.width / 2;
     bag.y = canvas.height - 60;
+    bag.radius = bag.originalRadius;
 }
 
 // Initial draw
