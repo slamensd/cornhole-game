@@ -106,11 +106,11 @@ function throwBag() {
     let maxDistance = canvas.height; // Maximum throw distance beyond the board
     let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
     let initialY = bag.y;
-    let finalY = initialY - scaledPower; // End position at peak
+    let peakY = initialY - scaledPower; // End position at peak
 
-    let scalingFactor = 1 + (scaledPower / maxDistance) * 0.15; // 15% scaling
+    let midpointY = initialY - (scaledPower / 2); // Midpoint for peak size
+    let scalingFactor = 1 + 0.15; // Max scaling of 15%
 
-    bag.isMoving = true;
     let animationProgress = 0; // Track animation progress from 0 to 1
 
     let animationInterval = setInterval(() => {
@@ -122,11 +122,19 @@ function throwBag() {
 
         // Calculate the new Y position using linear interpolation
         bag.y = initialY - (scaledPower * animationProgress);
-        bag.radius = bag.originalRadius * (1 + scalingFactor * (1 - animationProgress)); // Scale as it moves up
+
+        // Scale the bag: enlarge up to the midpoint, then shrink
+        if (animationProgress <= 0.5) {
+            // Scale up phase until midpoint
+            bag.radius = bag.originalRadius * (1 + scalingFactor * (animationProgress * 2));
+        } else {
+            // Scale down phase after midpoint
+            bag.radius = bag.originalRadius * (1 + scalingFactor * (2 - animationProgress * 2));
+        }
 
         drawBag();
 
-        // Check if the bag lands on the board
+        // Stop the animation at the end of the throw
         if (animationProgress >= 1) {
             clearInterval(animationInterval);
             bag.isMoving = false;
