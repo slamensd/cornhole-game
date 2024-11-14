@@ -150,13 +150,47 @@ function animateThrow(angle, power) {
 
         drawBag();
 
-        // End animation condition
-        if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
+        // Check collision with the board
+        if (checkCollisionWithBoard()) {
             clearInterval(animationInterval);
             isThrowing = false;
-            resetBag();
+            score += 3;  // Example score increment for hitting the board
+            scoreEl.textContent = `Score: ${score}`;
+            showScoreOverlay('+3 Points!');
+            setTimeout(resetBag, 1000);  // Wait before spawning the next throw
+        } else if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
+            clearInterval(animationInterval);
+            isThrowing = false;
+            resetBag();  // Spawn next throw immediately if it misses
         }
     }, 30);
+}
+
+// Check if the bag hits the board
+function checkCollisionWithBoard() {
+    return (
+        bag.y >= canvas.height / 4 &&
+        bag.y <= canvas.height / 2 &&
+        bag.x >= canvas.width / 4 &&
+        bag.x <= (canvas.width / 4) + (canvas.width / 2)
+    );
+}
+
+// Show score overlay animation
+function showScoreOverlay(text) {
+    scoreOverlay.textContent = text;
+    scoreOverlay.style.display = 'block';
+    scoreOverlay.style.opacity = '1';
+
+    let opacity = 1;
+    let fadeInterval = setInterval(() => {
+        opacity -= 0.05;
+        scoreOverlay.style.opacity = opacity.toString();
+        if (opacity <= 0) {
+            clearInterval(fadeInterval);
+            scoreOverlay.style.display = 'none';
+        }
+    }, 50);
 }
 
 // Clear canvas function
