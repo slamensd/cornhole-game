@@ -185,7 +185,7 @@ function handleLanding() {
     }
 
     scoreEl.textContent = `Score: ${score}`;
-    setTimeout(resetBag, 1000); // Wait before resetting for the next throw
+    resetBag(); // Reset the bag to the origin for the next throw
 }
 
 // Show score overlay animation
@@ -212,9 +212,13 @@ function clearCanvas() {
 
 // Reset bag position to origin for the next throw
 function resetBag() {
-    bag.x = canvas.width / 2;
-    bag.y = canvas.height - 60;
-    bag.radius = bag.originalRadius;
+    setTimeout(() => {
+        bag.x = canvas.width / 2;
+        bag.y = canvas.height - 60;
+        bag.radius = bag.originalRadius;
+        drawBoard();
+        drawBag();
+    }, 1000);
 }
 
 // Initial draw
