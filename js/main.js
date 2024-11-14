@@ -24,6 +24,8 @@ let power = 0;
 let viewportOffset = 0; // Track the current scroll offset
 const canvasHeight = window.innerHeight * 3; // Set the canvas height to 3x the viewport height
 canvas.height = canvasHeight; // Adjust the canvas size
+canvas.style.backgroundColor = 'lightgreen'; // Add a background color for visual feedback
+
 const bag = {
     x: canvas.width / 2,
     y: canvas.height - 60,
