@@ -15,8 +15,8 @@ const bag = {
     y: canvas.height - 60,
     radius: 15,
     originalRadius: 15,
-    isMoving: false,
-    weight: 1 // New weight property to simulate drag
+    weight: 1.5, // Weight property to affect drag
+    isMoving: false
 };
 
 // UI elements
@@ -35,7 +35,7 @@ let timerInterval = setInterval(() => {
     }
 }, 1000);
 
-// Draw the game board with the target hole at the far end
+// Draw the game board and target hole at the top of the board
 function drawBoard() {
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 5); // Move to higher position
@@ -44,10 +44,10 @@ function drawBoard() {
     ctx.fillRect(-canvas.width / 4, -canvas.height / 8, canvas.width / 2, canvas.height / 4);
     ctx.restore();
 
-    // Draw circular target (bullseye) at the far end of the board
+    // Draw circular target (bullseye) at the top of the board
     ctx.fillStyle = 'black';
     ctx.beginPath();
-    ctx.arc(canvas.width / 2, canvas.height / 5, 20, 0, Math.PI * 2); // Adjusted position
+    ctx.arc(canvas.width / 2, canvas.height / 5 - 40, 20, 0, Math.PI * 2); // Adjusted position for top of the board
     ctx.fill();
 }
 
@@ -147,26 +147,32 @@ function throwBag() {
 
 // Apply drag effect and handle scoring when the bag lands
 function applyLandingDrag() {
+    let dragSpeed = 2; // Initial drag speed for the bag
     let dragInterval = setInterval(() => {
-        // Simulate drag by gradually slowing down the bag's movement
-        if (bag.y > canvas.height / 5 && bag.y < canvas.height / 3) {
-            bag.y -= 0.5 * bag.weight; // Drag effect based on weight
+        if (bag.y > canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8) {
+            bag.y -= dragSpeed;
+            dragSpeed *= 0.9; // Slow down the drag effect gradually
+            if (dragSpeed < 0.1) { // Stop when drag becomes negligible
+                clearInterval(dragInterval);
+                handleLanding();
+            }
         } else {
             clearInterval(dragInterval);
             handleLanding();
         }
+        drawBag();
     }, 30);
 }
 
 // Handle landing logic for scoring
 function handleLanding() {
     // Check if the bag lands within the circular bullseye for +3 points
-    if (Math.abs(bag.y - canvas.height / 5) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15) {
+    if (Math.abs(bag.y - (canvas.height / 5 - 40)) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15) {
         score += 3;
         showScoreOverlay('+3 Points!');
     }
     // Check if the bag lands on the board for +1 point
-    else if (bag.y >= canvas.height / 4 && bag.y <= canvas.height / 2 &&
+    else if (bag.y >= canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8 &&
              bag.x >= canvas.width / 4 && bag.x <= (canvas.width / 4) + (canvas.width / 2)) {
         score += 1;
         showScoreOverlay('+1 Point!');
