@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cornhole Game</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -16,7 +16,11 @@
 
     <!-- Game Area -->
     <div id="game-container">
-        <canvas id="gameCanvas" width="400" height="800"></canvas>
+        <canvas id="gameCanvas" width="375" height="500"></canvas>
+        <div id="slider-container">
+            <canvas id="sliderCanvas" width="375" height="50"></canvas>
+            <div id="slider-ball"></div>
+        </div>
     </div>
 
     <script src="js/main.js"></script>

@@ -1,21 +1,20 @@
-// Select canvas and set up context
+// Select elements
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const sliderCanvas = document.getElementById('sliderCanvas');
+const sliderCtx = sliderCanvas.getContext('2d');
+const sliderBall = document.getElementById('slider-ball');
 
-// Game variables
 let throwsLeft = 10;
 let score = 0;
 let timeLeft = 60;
-let isDragging = false;
-let isThrowing = false;
-let startPoint = null;
-let endPoint = null;
+let isDraggingBall = false;
+let power = 0;
 const bag = {
     x: canvas.width / 2,
-    y: canvas.height - 0.08 * window.innerHeight,
+    y: canvas.height - 60,
     radius: 15,
-    originalRadius: 15,
-    type: null
+    originalRadius: 15
 };
 
 // UI elements
@@ -34,7 +33,7 @@ let timerInterval = setInterval(() => {
     }
 }, 1000);
 
-// Draw board and targets
+// Draw the game board and targets
 function drawBoard() {
     ctx.fillStyle = '#e6b800';
     ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 4);
@@ -55,6 +54,18 @@ function drawBoard() {
     ctx.fill();
 }
 
+// Draw the slider (right triangle)
+function drawSlider() {
+    sliderCtx.clearRect(0, 0, sliderCanvas.width, sliderCanvas.height);
+    sliderCtx.fillStyle = 'green';
+    sliderCtx.beginPath();
+    sliderCtx.moveTo(0, 50);
+    sliderCtx.lineTo(sliderCanvas.width, 50);
+    sliderCtx.lineTo(sliderCanvas.width, 0);
+    sliderCtx.closePath();
+    sliderCtx.fill();
+}
+
 // Draw bag
 function drawBag() {
     ctx.fillStyle = 'blue';
@@ -63,134 +74,61 @@ function drawBag() {
     ctx.fill();
 }
 
-// Handle mouse/touch events for dragging and throwing
-canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+// Move the slider ball based on mouse/touch input
+sliderBall.addEventListener('mousedown', (e) => {
+    isDraggingBall = true;
+});
 
-    if (Math.sqrt((mouseX - bag.x) ** 2 + (mouseY - bag.y) ** 2) <= bag.radius) {
-        isDragging = true;
-        startPoint = { x: mouseX, y: mouseY };
+document.addEventListener('mousemove', (e) => {
+    if (isDraggingBall) {
+        const rect = sliderCanvas.getBoundingClientRect();
+        let mouseX = e.clientX - rect.left;
+
+        // Keep the ball within the bounds of the slider
+        if (mouseX < 0) mouseX = 0;
+        if (mouseX > rect.width) mouseX = rect.width;
+
+        // Update the position of the slider ball and calculate power
+        sliderBall.style.left = `${mouseX - 7}px`;
+        power = (mouseX / rect.width) * 100; // Calculate power as a percentage
     }
 });
 
-canvas.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        clearCanvas();
-        drawBoard();
-        drawBag();
-        drawLine(bag.x, bag.y, mouseX, mouseY);
+document.addEventListener('mouseup', () => {
+    if (isDraggingBall) {
+        isDraggingBall = false;
+        throwBag();
     }
 });
 
-canvas.addEventListener('mouseup', (e) => {
-    if (isDragging) {
-        isDragging = false;
-        endPoint = { x: e.clientX - canvas.getBoundingClientRect().left, y: e.clientY - canvas.getBoundingClientRect().top };
-        calculateThrow();
-    }
-});
-
-// Draw line for slingshot power direction
-function drawLine(x1, y1, x2, y2) {
-    ctx.strokeStyle = 'red';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
-}
-
-// Calculate throw and animate
-function calculateThrow() {
-    if (!endPoint) return;
-
-    let dx = endPoint.x - startPoint.x;
-    let dy = endPoint.y - startPoint.y;
-
-    // Adjust max power and limit scaling effect
-    let maxPullDistance = Math.min(Math.sqrt(dx * dx + dy * dy), canvas.height / 4);
-    let angle = Math.atan2(dy, dx);
-    let power = maxPullDistance / 10;  // Adjust scaling to max throw just over the board
-
-    animateThrow(angle, power);
-}
-
-function animateThrow(angle, power) {
-    if (isThrowing) return;
-    isThrowing = true;
+// Throw the bag with power based on slider value
+function throwBag() {
+    if (throwsLeft <= 0) return;
     throwsLeft--;
     throwsLeftEl.textContent = `Throws Left: ${throwsLeft}`;
+    
+    let angle = -Math.PI / 4; // Fixed angle for simplicity
+    let maxDistance = canvas.height / 2; // Maximum throw distance
+    let scaledPower = (power / 100) * maxDistance; // Convert power to actual distance
+    let vy = -scaledPower; // Vertical velocity
 
-    let vx = power * Math.cos(angle);
-    let vy = power * Math.sin(angle) * -1;  // Upward
-    let gravity = 0.5;
-    let scalingFactor = 1 + (power / 20) * 0.15;  // Max scale of 15%
+    let gravity = 0.5; // Simulate gravity
 
     let animationInterval = setInterval(() => {
         clearCanvas();
         drawBoard();
 
-        // Animate bag scaling based on distance
-        if (bag.y < canvas.height / 2) {
-            bag.radius = bag.originalRadius * scalingFactor;
-        } else {
-            bag.radius = bag.originalRadius * (2 - scalingFactor);
-        }
-
-        // Update bag position
-        bag.x += vx;
+        // Update bag position and check if it hits the board
         bag.y += vy;
-        vy += gravity;
+        vy += gravity; // Gravity effect
 
         drawBag();
 
-        // Check collision with the board
-        if (checkCollisionWithBoard()) {
+        if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
             clearInterval(animationInterval);
-            isThrowing = false;
-            score += 3;  // Example score increment for hitting the board
-            scoreEl.textContent = `Score: ${score}`;
-            showScoreOverlay('+3 Points!');
-            setTimeout(resetBag, 1000);  // Wait before spawning the next throw
-        } else if (bag.y > canvas.height || bag.x < 0 || bag.x > canvas.width) {
-            clearInterval(animationInterval);
-            isThrowing = false;
-            resetBag();  // Spawn next throw immediately if it misses
+            resetBag();
         }
     }, 30);
-}
-
-// Check if the bag hits the board
-function checkCollisionWithBoard() {
-    return (
-        bag.y >= canvas.height / 4 &&
-        bag.y <= canvas.height / 2 &&
-        bag.x >= canvas.width / 4 &&
-        bag.x <= (canvas.width / 4) + (canvas.width / 2)
-    );
-}
-
-// Show score overlay animation
-function showScoreOverlay(text) {
-    scoreOverlay.textContent = text;
-    scoreOverlay.style.display = 'block';
-    scoreOverlay.style.opacity = '1';
-
-    let opacity = 1;
-    let fadeInterval = setInterval(() => {
-        opacity -= 0.05;
-        scoreOverlay.style.opacity = opacity.toString();
-        if (opacity <= 0) {
-            clearInterval(fadeInterval);
-            scoreOverlay.style.display = 'none';
-        }
-    }, 50);
 }
 
 // Clear canvas function
@@ -201,11 +139,10 @@ function clearCanvas() {
 // Reset bag position
 function resetBag() {
     bag.x = canvas.width / 2;
-    bag.y = canvas.height - 0.08 * window.innerHeight;
-    bag.radius = bag.originalRadius;
+    bag.y = canvas.height - 60;
 }
 
 // Initial draw
-clearCanvas();
 drawBoard();
+drawSlider();
 drawBag();
