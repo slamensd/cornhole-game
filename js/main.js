@@ -172,22 +172,20 @@ function applyLandingDrag() {
 
 // Handle landing logic for scoring
 function handleLanding() {
-    // Check if the bag lands within the circular bullseye for +3 points
-    if (Math.abs(bag.y - (canvas.height / 5 - 40)) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15) {
+    let inHole = Math.abs(bag.y - (canvas.height / 5 - 40)) <= 15 && Math.abs(bag.x - canvas.width / 2) <= 15;
+    let onBoard = bag.y >= canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8 &&
+                  bag.x >= canvas.width / 4 && bag.x <= (canvas.width / 4) + (canvas.width / 2);
+
+    if (inHole) {
         score += 3;
         showScoreOverlay('+3 Points!');
-    }
-    // Check if the bag lands on the board for +1 point
-    else if (bag.y >= canvas.height / 5 && bag.y <= canvas.height / 4 + canvas.height / 8 &&
-             bag.x >= canvas.width / 4 && bag.x <= (canvas.width / 4) + (canvas.width / 2)) {
+    } else if (onBoard) {
         score += 1;
         showScoreOverlay('+1 Point!');
     }
 
     scoreEl.textContent = `Score: ${score}`;
-    setTimeout(() => {
-        resetBag(); // Reset the bag to the origin for the next throw
-    }, 1000); // Wait before resetting for the next throw
+    setTimeout(resetBag, 1000); // Wait before resetting for the next throw
 }
 
 // Show score overlay animation
